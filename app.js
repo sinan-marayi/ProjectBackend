@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const cors=require('cors')
 const bodyParser = require('body-parser')
 const users = require('./routes/user')
+const admin = require('./routes/admin')
 
 const app=express()
 
@@ -19,6 +20,7 @@ app.use(bodyParser.json())
 
 //Routes
 app.use('/users',users)
+app.use('/admin',admin)
 
 
 //Server

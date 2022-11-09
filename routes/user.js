@@ -3,7 +3,8 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const User = require("../models/user");
+const User = require("../models/user"); 
+const Carousel = require("../models/carousel"); 
 
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
@@ -94,6 +95,17 @@ router.post("/login", async (req, res) => {
     }
   }
 });
+
+//SEND CAROUSEL
+router.get('/sendCarousel',(req,res)=>{
+  Carousel.find((err,data)=>{
+    if (err) {
+      throw err
+    } else {
+      res.json({data:data})
+    }
+  })
+})
 
 router.get("/profile", verifyToken, (req, res) => {
   res.json({ user: req.user });
