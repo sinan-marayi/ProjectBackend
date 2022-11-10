@@ -3,8 +3,8 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const User = require("../models/user"); 
-const Carousel = require("../models/carousel"); 
+const User = require("../models/user");
+const Carousel = require("../models/carousel");
 
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
@@ -97,18 +97,31 @@ router.post("/login", async (req, res) => {
 });
 
 //SEND CAROUSEL
-router.get('/sendCarousel',(req,res)=>{
-  Carousel.find((err,data)=>{
+router.get("/sendCarousel", (req, res) => {
+  Carousel.find((err, data) => {
     if (err) {
-      throw err
+      throw err;
     } else {
-      res.json({data:data})
+      res.json({ data: data });
     }
-  })
-})
+  });
+});
+// REMOVE CAROUSEL
+router.post("/removeCarousel", (req, res) => {
+  let id = req.body._id;
+  console.log(id);
+  Carousel.findByIdAndDelete(id, (err, data) => {
+    if (err) {
+      throw err;
+    } else {
+      console.log(data);
+      res.json({ success: true, data: data });
+    }
+  });
+});
 
 router.get("/profile", verifyToken, (req, res) => {
-  res.json({ user: req.user });
+  res.json({ user: req.user }); 
 });
 
 module.exports = router;
