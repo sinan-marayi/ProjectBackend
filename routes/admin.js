@@ -1,13 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const { generateUrl } = require("../config/s3");
-const jwt=require('jsonwebtoken')
-const Carousel=require('../models/carousel')
+const jwt = require("jsonwebtoken");
+const Carousel = require("../models/carousel");
+const Product = require("../models/product");
 
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
   if (!req.headers.authorization) {
-    console.log('d');
+    console.log("d");
     return res.json({ success: false, msg: "unauthorized request" });
   }
   let token = req.headers.authorization.split(" ")[1];
@@ -33,22 +34,55 @@ router.get("/s3url", verifyToken, async (req, res) => {
 });
 
 //ADD CAROUSEL
-router.post('/addCarousel',verifyToken,async(req,res)=>{
-    let newCarousel = {
-        heading: req.body.heading,
-        offer: req.body.offer,
-        category: req.body.category,
-        image: req.body.image,
-      };
-    let carousel =new Carousel(newCarousel)
-    carousel.save((err,data)=>{
-        if (err) {
-            res.json({success:false,msg:'Adding Carousel is Failed'})
-        } else {
-            res.json({success:true,msg:'Adding Carousel is Successfull'})
-            
-        }
-    })
-})
+router.post("/addCarousel", verifyToken, async (req, res) => {
+  let newCarousel = {
+    heading: req.body.heading,
+    offer: req.body.offer,
+    category: req.body.category,
+    image: req.body.image,
+  };
+  let carousel = new Carousel(newCarousel);
+  carousel.save((err, data) => {
+    if (err) {
+      res.json({ success: false, msg: "Adding Carousel is Failed" });
+    } else {
+      res.json({ success: true, msg: "Adding Carousel is Successfull" });
+    }
+  });
+});
+
+// REMOVE CAROUSEL
+router.post("/removeCarousel", (req, res) => {
+  let id = req.body._id;
+  console.log(id);
+  Carousel.findByIdAndDelete(id, (err, data) => {
+    if (err) {
+      throw err;
+    } else {
+      console.log(data);
+      res.json({ success: true, data: data });
+    }
+  });
+});
+
+//ADD PRODUCT
+router.post("/addProduct", verifyToken, async (req, res) => {
+  let newProduct = {
+    name: req.body.name,
+    category: req.body.category,
+    actualPrice: req.body.actualPrice,
+    offerPrice: req.body.offerPrice,
+    description: req.body.description,
+    thumbnail: req.body.thumbnail,
+  };
+  let product = new Product(newProduct);
+  product.save((err, data) => {
+    if (err) {
+      res.json({ success: false, msg: "Adding Product is Failed" });
+    } else {
+      res.json({ success: true, msg: "Adding Product is Successfull" });
+    }
+  });
+});
 
 module.exports = router;
