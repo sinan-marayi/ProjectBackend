@@ -3,12 +3,13 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const {generaterazorpay} = require('../config/razorpay')
 
 const User = require("../models/user");
 const Carousel = require("../models/carousel");
 const Product = require("../models/product");
 const Cart = require("../models/cart");
-const user = require("../models/user");
+const Order = require("../models/order");
 
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
@@ -177,11 +178,11 @@ router.post("/addToCart", verifyToken, async (req, res) => {
       userId: userId,
       products: [{ productId: productId, quantity: 1 }],
     });
-    cart.save((err,data)=>{
+    cart.save((err, data) => {
       if (err) {
-        throw err
+        throw err;
       } else {
-        res.json({sucess:true,msg:"new cart created"})
+        res.json({ sucess: true, msg: "new cart created" });
       }
     });
   }
@@ -217,10 +218,146 @@ router.post("/sendCart", verifyToken, async (req, res) => {
         },
       },
     ]);
-    res.json({ success: true,data:data });
-    
+    res.json({ success: true, data: data });
   }
 });
+
+//QUANTITY INCREMENT OR DECREMENT IN CART
+router.post("/incOrdec", verifyToken, async (req, res) => {
+  let user = req.body.user;
+  let value = req.body.value;
+  let productId = req.body.product;
+  console.log(user, value, productId);
+
+  if (value === "inc") {
+    console.log("inc");
+    Cart.findOneAndUpdate(
+      {
+        userId: user,
+        "products.productId": mongoose.Types.ObjectId(productId),
+      },
+      {
+        $inc: { "products.$.quantity": 1 },
+      },
+      (err, data) => {
+        res.json({ sucess: true });
+      }
+    );
+  } else {
+    console.log("dec");
+
+    Cart.findOneAndUpdate(
+      {
+        userId: user,
+        "products.productId": mongoose.Types.ObjectId(productId),
+      },
+      {
+        $inc: { "products.$.quantity": -1 },
+      },
+      (err, data) => {
+        res.json({ sucess: true });
+      }
+    );
+  }
+});
+
+//TO GET THE TOTAL
+router.post("/totalAmount", verifyToken, async (req, res) => {
+  let user = req.body.userId;
+  let total = await Cart.aggregate([
+    {
+      $match: { userId: user },
+    },
+    {
+      $unwind: "$products",
+    },
+    {
+      $project: {
+        productId: "$products.productId",
+        quantity: "$products.quantity",
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productId",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    {
+      $project: {
+        productId: 1,
+        quantity: 1,
+        product: { $arrayElemAt: ["$product", 0] },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalAmount: {
+          $sum: { $multiply: ["$quantity", "$product.offerPrice"] },
+        },
+      },
+    },
+  ]);
+  res.json({ total: total[0].totalAmount });
+});
+
+//CHECKOUT
+router.post("/checkout", verifyToken, async (req, res) => {
+  let user = req.body.userId;
+  let total = req.body.totalAmount;
+  let address = req.body.address;
+  let pincode = req.body.pincode;
+  let phone = req.body.phone;
+  let products = await Cart.aggregate([
+    { $match: { userId: user } },
+    { $project: { products: 1 } },
+  ]);
+  let paymentMethod = req.body.paymentMethod
+  let status = paymentMethod === "online" ? "pending" : "placed";
+
+  let newOrder = {
+    deliveryDetails: {
+      address: address,
+      pincode: pincode,
+      phone: phone,
+    },
+    userId: user,
+    paymentMethod: paymentMethod,
+    status: status,
+    total: total,
+    orderedAt: new Date(),
+  };
+  let order= new Order(newOrder)
+  order.save((err,data)=>{
+    if (err) {
+      res.json({success:false,msg:'failed to place a order'})
+    } else {
+      if (paymentMethod === 'cod') {
+        res.json({CODsuccess:true,msg:'placed your cod order'})
+      } else {
+        // let orderDetails={}
+        // let order =  generaterazorpay(data._id,total)
+        // order.then(result => 
+        //   orderDetails=result
+        //   )
+        //   console.log(orderDetails);
+        // res.json({success:true,order:order})
+        generaterazorpay(data._id,total).then(result=>{
+
+          res.json({success:true,order:result})
+        }
+        )
+      }
+    }
+  })
+});
+//PAYMENT VERIFICATION
+router.post('/verifyPayment',verifyToken,(req,res)=>{
+  console.log(req.body);
+})
 
 router.get("/profile", verifyToken, (req, res) => {
   res.json({ user: req.user });
