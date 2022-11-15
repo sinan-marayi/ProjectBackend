@@ -3,7 +3,10 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
-const {generaterazorpay} = require('../config/razorpay')
+const {
+  generaterazorpay,
+  signatureVerification,
+} = require("../config/razorpay");
 
 const User = require("../models/user");
 const Carousel = require("../models/carousel");
@@ -301,7 +304,12 @@ router.post("/totalAmount", verifyToken, async (req, res) => {
       },
     },
   ]);
-  res.json({ total: total[0].totalAmount });
+  if (total) {
+    
+    res.json({success:true, total: total });
+  } else {
+    res.json({success:false,msg:'unable to find the total'})
+  }
 });
 
 //CHECKOUT
@@ -315,7 +323,7 @@ router.post("/checkout", verifyToken, async (req, res) => {
     { $match: { userId: user } },
     { $project: { products: 1 } },
   ]);
-  let paymentMethod = req.body.paymentMethod
+  let paymentMethod = req.body.paymentMethod;
   let status = paymentMethod === "online" ? "pending" : "placed";
 
   let newOrder = {
@@ -324,40 +332,67 @@ router.post("/checkout", verifyToken, async (req, res) => {
       pincode: pincode,
       phone: phone,
     },
+    products: products,
     userId: user,
     paymentMethod: paymentMethod,
     status: status,
     total: total,
     orderedAt: new Date(),
   };
-  let order= new Order(newOrder)
-  order.save((err,data)=>{
+  let order = new Order(newOrder);
+  order.save((err, data) => {
     if (err) {
-      res.json({success:false,msg:'failed to place a order'})
+      res.json({ success: false, msg: "failed to place a order" });
     } else {
-      if (paymentMethod === 'cod') {
-        res.json({CODsuccess:true,msg:'placed your cod order'})
+      if (paymentMethod === "cod") {
+        res.json({ CODsuccess: true, msg: "placed your cod order" });
       } else {
-        // let orderDetails={}
-        // let order =  generaterazorpay(data._id,total)
-        // order.then(result => 
-        //   orderDetails=result
-        //   )
-        //   console.log(orderDetails);
-        // res.json({success:true,order:order})
-        generaterazorpay(data._id,total).then(result=>{
-
-          res.json({success:true,order:result})
-        }
-        )
+        generaterazorpay(data._id, total).then((result) => {
+          res.json({ success: true, order: result });
+        });
       }
     }
-  })
+  });
 });
 //PAYMENT VERIFICATION
-router.post('/verifyPayment',verifyToken,(req,res)=>{
+router.post("/verifyPayment", verifyToken, (req, res) => {
   console.log(req.body);
-})
+  let orderId=req.body.razorpay_order_id
+  let paymentId=req.body.razorpay_payment_id
+  let signature=req.body.razorpay_signature
+  let id = req.body.receipt;
+  let userId=req.body.userId
+
+
+  signatureVerification(
+    //payment_verification
+    orderId,paymentId,signature
+  )
+    .then((res) => {
+      //ifSuccessFull
+      Order.updateOne(  //orderPlaced
+        { _id: id },
+        { $set: { status: "placed" } },
+        (err, data) => {
+          if (err) {
+            throw err;
+          } else {
+          }
+        }
+      );
+      Cart.findOneAndRemove({userId:userId},(err,data)=>{
+        if (err) {
+          throw err 
+        } else {
+          console.log(data);
+        }
+      })
+    })
+    .catch((err) => {
+      //ifFailed
+      console.log("failed" + err);
+    });
+});
 
 router.get("/profile", verifyToken, (req, res) => {
   res.json({ user: req.user });

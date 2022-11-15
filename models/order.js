@@ -34,7 +34,8 @@ const orderSchema=mongoose.Schema({
     orderedAt:{
         type:Date,
         required:true
-    }
+    },
+    products:[]
 })
 
 const Order = module.exports = mongoose.model('orders',orderSchema)

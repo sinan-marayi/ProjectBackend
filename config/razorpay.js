@@ -8,30 +8,33 @@ var instance = new Razorpay({
 module.exports.generaterazorpay =async function (orderId, total) {
     return new Promise((resolve, reject) => {
       var options = {
-        amount: total * 100,
+        amount: (total * 100),
         currency: "INR",
         receipt: "" + orderId,
       };
        instance.orders.create(options, (err, order) => {
         if (err) {
-          throw err;
+          console.log(err);
         } else {
-            // console.log(order);
           resolve(order);
         }
       });
     });
-//   var options = {
-//     amount: total,
-//     currency: "INR",
-//     receipt: "" + orderId,
-//   };
-//   await instance.orders.create(options, async (err, order) => {
-//     if (err) {
-//       throw err;
-//     } else {
-//         console.log(order);
-//       return order;
-//     }
-//   })
+ 
 };
+module.exports.signatureVerification= function (orderId,paymentId,signature){
+return new Promise((resolve,reject)=>{
+    const crypto = require('crypto')
+    let hmac= crypto.createHmac('sha256','d9ncWXWoPEFpxZvtJzUEClha')
+
+    hmac.update(orderId+'|'+paymentId);
+    hmac=hmac.digest('hex')
+    if(hmac === signature){
+        console.log('success');
+        resolve()
+    }else{
+        console.log('failed');
+        reject()
+    }
+})
+}
