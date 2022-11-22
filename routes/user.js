@@ -13,6 +13,8 @@ const Carousel = require("../models/carousel");
 const Product = require("../models/product");
 const Cart = require("../models/cart");
 const Order = require("../models/order");
+const cart = require("../models/cart");
+const user = require("../models/user");
 
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
@@ -163,17 +165,15 @@ router.post("/addToCart", verifyToken, async (req, res) => {
       );
     } else {
       //if the product is not exist in the cart
-      Cart.findOneAndUpdate(
-        { userId: userId },
-        {
-          $push: {
-            products: {
-              productId: mongoose.Types.ObjectId(productId),
-              quantity: 1,
-            },
+      let cart = await Cart.findOne({ userId: userId });
+      let updated = await cart.update({
+        $push: {
+          products: {
+            productId: mongoose.Types.ObjectId(productId),
+            quantity: 1,
           },
-        }
-      );
+        },
+      });
     }
   } else {
     //if there is no cart in the name of user
@@ -305,10 +305,9 @@ router.post("/totalAmount", verifyToken, async (req, res) => {
     },
   ]);
   if (total) {
-    
-    res.json({success:true, total: total });
+    res.json({ success: true, total: total });
   } else {
-    res.json({success:false,msg:'unable to find the total'})
+    res.json({ success: false, msg: "unable to find the total" });
   }
 });
 
@@ -357,20 +356,22 @@ router.post("/checkout", verifyToken, async (req, res) => {
 //PAYMENT VERIFICATION
 router.post("/verifyPayment", verifyToken, (req, res) => {
   console.log(req.body);
-  let orderId=req.body.razorpay_order_id
-  let paymentId=req.body.razorpay_payment_id
-  let signature=req.body.razorpay_signature
+  let orderId = req.body.razorpay_order_id;
+  let paymentId = req.body.razorpay_payment_id;
+  let signature = req.body.razorpay_signature;
   let id = req.body.receipt;
-  let userId=req.body.userId
-
+  let userId = req.body.userId;
 
   signatureVerification(
     //payment_verification
-    orderId,paymentId,signature
+    orderId,
+    paymentId,
+    signature
   )
     .then((res) => {
       //ifSuccessFull
-      Order.updateOne(  //orderPlaced
+      Order.updateOne(
+        //orderPlaced
         { _id: id },
         { $set: { status: "placed" } },
         (err, data) => {
@@ -380,13 +381,13 @@ router.post("/verifyPayment", verifyToken, (req, res) => {
           }
         }
       );
-      Cart.findOneAndRemove({userId:userId},(err,data)=>{
+      Cart.findOneAndRemove({ userId: userId }, (err, data) => {
         if (err) {
-          throw err 
+          throw err;
         } else {
           console.log(data);
         }
-      })
+      });
     })
     .catch((err) => {
       //ifFailed
