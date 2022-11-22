@@ -263,6 +263,23 @@ router.post("/incOrdec", verifyToken, async (req, res) => {
     );
   }
 });
+//REMOVE ITEM FROM CART
+router.post("/removeFromCart", verifyToken, async (req, res) => {
+  let user = req.body.userId;
+  let productId = req.body.productId;
+
+  let cart =await Cart.findOne({ userId: user });
+  let updated = await cart.update({
+    $pull: {
+      products: {
+        productId: mongoose.Types.ObjectId(productId),
+      },
+    },
+  });
+  if (updated) {
+    res.json({success:true})
+  }
+});
 
 //TO GET THE TOTAL
 router.post("/totalAmount", verifyToken, async (req, res) => {
@@ -355,7 +372,6 @@ router.post("/checkout", verifyToken, async (req, res) => {
 });
 //PAYMENT VERIFICATION
 router.post("/verifyPayment", verifyToken, (req, res) => {
-  console.log(req.body);
   let orderId = req.body.razorpay_order_id;
   let paymentId = req.body.razorpay_payment_id;
   let signature = req.body.razorpay_signature;
@@ -368,30 +384,32 @@ router.post("/verifyPayment", verifyToken, (req, res) => {
     paymentId,
     signature
   )
-    .then((res) => {
+    .then((response) => {
       //ifSuccessFull
+      //orderPlaced
       Order.updateOne(
-        //orderPlaced
         { _id: id },
         { $set: { status: "placed" } },
         (err, data) => {
           if (err) {
             throw err;
           } else {
+            //removeCart
+            Cart.findOneAndRemove({ userId: userId }, (err, data) => {
+              if (err) {
+                throw err;
+              } else {
+                res.json({ success: true, msg: "payment success" });
+              }
+            });
           }
         }
       );
-      Cart.findOneAndRemove({ userId: userId }, (err, data) => {
-        if (err) {
-          throw err;
-        } else {
-          console.log(data);
-        }
-      });
     })
     .catch((err) => {
       //ifFailed
       console.log("failed" + err);
+      res.json({ success: false, msg: "payment failed" });
     });
 });
 
