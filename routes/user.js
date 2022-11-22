@@ -412,6 +412,17 @@ router.post("/verifyPayment", verifyToken, (req, res) => {
       res.json({ success: false, msg: "payment failed" });
     });
 });
+//SEND ORDERS TO USERS
+router.post('/sendOrder',verifyToken,async(req,res)=>{
+  let orders=await Order.find({userId:req.body.userId})
+  if (orders) {
+    res.json({success:true,orders:orders})
+    
+  } else {
+    res.json({success:false})
+    
+  }
+})
 
 router.get("/profile", verifyToken, (req, res) => {
   res.json({ user: req.user });
