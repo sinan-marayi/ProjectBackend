@@ -263,6 +263,7 @@ router.post("/incOrdec", verifyToken, async (req, res) => {
     );
   }
 });
+
 //REMOVE ITEM FROM CART
 router.post("/removeFromCart", verifyToken, async (req, res) => {
   let user = req.body.userId;
@@ -320,7 +321,7 @@ router.post("/totalAmount", verifyToken, async (req, res) => {
         },
       },
     },
-  ]);
+  ]);     
   if (total) {
     res.json({ success: true, total: total });
   } else {
@@ -370,6 +371,7 @@ router.post("/checkout", verifyToken, async (req, res) => {
     }
   });
 });
+
 //PAYMENT VERIFICATION
 router.post("/verifyPayment", verifyToken, (req, res) => {
   let orderId = req.body.razorpay_order_id;
@@ -412,6 +414,7 @@ router.post("/verifyPayment", verifyToken, (req, res) => {
       res.json({ success: false, msg: "payment failed" });
     });
 });
+
 //SEND ORDERS TO USERS
 router.post('/sendOrder',verifyToken,async(req,res)=>{
   let orders=await Order.find({userId:req.body.userId})
