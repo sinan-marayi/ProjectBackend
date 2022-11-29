@@ -269,7 +269,7 @@ router.post("/removeFromCart", verifyToken, async (req, res) => {
   let user = req.body.userId;
   let productId = req.body.productId;
 
-  let cart =await Cart.findOne({ userId: user });
+  let cart = await Cart.findOne({ userId: user });
   let updated = await cart.update({
     $pull: {
       products: {
@@ -278,7 +278,7 @@ router.post("/removeFromCart", verifyToken, async (req, res) => {
     },
   });
   if (updated) {
-    res.json({success:true})
+    res.json({ success: true });
   }
 });
 
@@ -321,7 +321,7 @@ router.post("/totalAmount", verifyToken, async (req, res) => {
         },
       },
     },
-  ]);     
+  ]);
   if (total) {
     res.json({ success: true, total: total });
   } else {
@@ -416,16 +416,27 @@ router.post("/verifyPayment", verifyToken, (req, res) => {
 });
 
 //SEND ORDERS TO USERS
-router.post('/sendOrder',verifyToken,async(req,res)=>{
-  let orders=await Order.find({userId:req.body.userId})
+router.post("/sendOrder", verifyToken, async (req, res) => {
+  let orders = await Order.find({ userId: req.body.userId });
   if (orders) {
-    res.json({success:true,orders:orders})
-    
+    res.json({ success: true, orders: orders });
   } else {
-    res.json({success:false})
-    
+    res.json({ success: false });
   }
-})
+});
+
+// PRODUCT LISTS
+router.post("/productList", async (req, res) => {
+  let category = req.body.category.toLowerCase()
+  console.log(category);
+  Product.find({category:category}, (err, data) => {
+    if (err) {
+      throw err;
+    } else {
+      res.json({ success: true, data: data });
+    }
+  });
+});
 
 router.get("/profile", verifyToken, (req, res) => {
   res.json({ user: req.user });

@@ -4,6 +4,7 @@ const { generateUrl } = require("../config/s3");
 const jwt = require("jsonwebtoken");
 const Carousel = require("../models/carousel");
 const Product = require("../models/product");
+const Order = require("../models/order");
 
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
@@ -84,5 +85,41 @@ router.post("/addProduct", verifyToken, async (req, res) => {
     }
   });
 });
+
+// ALL ORDERS
+router.get("/allOrders", verifyToken, (req, res) => {
+  Order.find((err, data) => {
+    if (err) {
+      throw err;
+    } else {
+      res.json({ success: true, data: data });
+    }
+  });
+});
+
+// CHANGE STATUS
+router.post('/changeStatus',verifyToken,async(req,res)=>{
+  let id=req.body.id
+  let status=req.body.status
+  if (status === 'placed') {
+    let order=await Order.findOne({_id:id})
+    if (order) {
+      let updated = await order.updateOne({status:"shipped"})
+      res.json({success:true})
+    } else {
+      res.json({success:false})
+      
+    }
+  } else {
+    let order=await Order.findOne({_id:id})
+    if (order) {
+      let updated = await order.updateOne({status:"deliverd"})
+      res.json({success:true})
+    } else {
+      res.json({success:false})
+      
+    }
+  }
+})
 
 module.exports = router;
