@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const Carousel = require("../models/carousel");
 const Product = require("../models/product");
 const Order = require("../models/order");
+const { Route53RecoveryReadiness } = require("aws-sdk");
 
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
@@ -98,28 +99,47 @@ router.get("/allOrders", verifyToken, (req, res) => {
 });
 
 // CHANGE STATUS
-router.post('/changeStatus',verifyToken,async(req,res)=>{
-  let id=req.body.id
-  let status=req.body.status
-  if (status === 'placed') {
-    let order=await Order.findOne({_id:id})
+router.post("/changeStatus", verifyToken, async (req, res) => {
+  let id = req.body.id;
+  let status = req.body.status;
+  if (status === "placed") {
+    let order = await Order.findOne({ _id: id });
     if (order) {
-      let updated = await order.updateOne({status:"shipped"})
-      res.json({success:true})
+      let updated = await order.updateOne({ status: "shipped" });
+      res.json({ success: true });
     } else {
-      res.json({success:false})
-      
+      res.json({ success: false });
     }
   } else {
-    let order=await Order.findOne({_id:id})
+    let order = await Order.findOne({ _id: id });
     if (order) {
-      let updated = await order.updateOne({status:"deliverd"})
-      res.json({success:true})
+      let updated = await order.updateOne({ status: "deliverd" });
+      res.json({ success: true });
     } else {
-      res.json({success:false})
-      
+      res.json({ success: false });
     }
   }
-})
+});
+
+// ALL PRODUCTS
+router.get("/allProducts", verifyToken, async (req, res) => {
+  try {
+    let products = await Product.find();
+    res.json({ success: true, data: products });
+  } catch (error) {
+    res.json({ success: false });
+  }
+});
+
+// REMOVE ONE PRODUCT
+router.post("/removeProduct", verifyToken, async (req, res) => {
+  let id = req.body.id;
+  try {
+    let deletePro = await Product.deleteOne({ _id: id });
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false });
+  }
+});
 
 module.exports = router;
