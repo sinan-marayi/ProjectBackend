@@ -7,6 +7,8 @@ const Product = require("../models/product");
 const Order = require("../models/order");
 const { Route53RecoveryReadiness } = require("aws-sdk");
 
+const productJoi = require("../joiValidation/productObject");
+
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
   if (!req.headers.authorization) {
@@ -77,14 +79,20 @@ router.post("/addProduct", verifyToken, async (req, res) => {
     description: req.body.description,
     thumbnail: req.body.thumbnail,
   };
-  let product = new Product(newProduct);
-  product.save((err, data) => {
-    if (err) {
-      res.json({ success: false, msg: "Adding Product is Failed" });
-    } else {
-      res.json({ success: true, msg: "Adding Product is Successfull" });
-    }
-  });
+
+  let isValid = productJoi(newProduct);
+  if (isValid.success) {
+    let product = new Product(newProduct);
+    product.save((err, data) => {
+      if (err) {
+        res.json({ success: false, msg: "Adding Product is Failed" });
+      } else {
+        res.json({ success: true, msg: "Adding Product is Successfull" });
+      }
+    });
+  } else {
+    res.json({ success: false, msg: isValid.msg });
+  }
 });
 
 // ALL ORDERS

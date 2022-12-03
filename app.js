@@ -4,11 +4,15 @@ const cors=require('cors')
 const bodyParser = require('body-parser')
 const users = require('./routes/user')
 const admin = require('./routes/admin')
+const dotenv = require("dotenv");
+
+dotenv.config()
+
 
 const app=express()
 
 //Database connection
-const url='mongodb+srv://user:database@cluster0.cnjdoba.mongodb.net/project?retryWrites=true&w=majority'
+const url=process.env.MONGO_URL
 mongoose.connect(url,()=>{
     console.log('connected to the database');
 })

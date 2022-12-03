@@ -16,6 +16,8 @@ const Order = require("../models/order");
 const cart = require("../models/cart");
 const user = require("../models/user");
 
+const userJoi = require("../joiValidation/userObject");
+
 //AUTHENTICATION MIDDILEWARE
 function verifyToken(req, res, next) {
   if (!req.headers.authorization) {
@@ -46,18 +48,25 @@ router.post("/register", async (req, res) => {
     password: data.password,
   };
 
-  let salt = await bcrypt.genSalt(10);
-  let hash = await bcrypt.hash(newUser.password, salt);
-  newUser.password = hash; //encrypting the password
+  let isValid = userJoi(newUser);
+  console.log(isValid);
 
-  const user = new User(newUser);
-  user.save((err, result) => {
-    if (err) {
-      res.json({ success: false, msg: "fail to add user" });
-    } else {
-      res.json({ success: true, msg: "User added successfully" });
-    }
-  });
+  if (isValid.success) {
+    let salt = await bcrypt.genSalt(10);
+    let hash = await bcrypt.hash(newUser.password, salt);
+    newUser.password = hash; //encrypting the password
+    
+    const user = new User(newUser);
+    user.save((err, result) => {
+      if (err) {
+        res.json({ success: false, msg: "fail to add user" });
+      } else {
+        res.json({ success: true, msg: "User added successfully" });
+      }
+    });
+  } else {
+    res.json({ success: false, msg: isValid.msg });
+  }
 });
 
 //AUTHENTICATION OR LOGIN
@@ -427,9 +436,9 @@ router.post("/sendOrder", verifyToken, async (req, res) => {
 
 // PRODUCT LISTS
 router.post("/productList", async (req, res) => {
-  let category = req.body.category.toLowerCase()
+  let category = req.body.category.toLowerCase();
   console.log(category);
-  Product.find({category:category}, (err, data) => {
+  Product.find({ category: category }, (err, data) => {
     if (err) {
       throw err;
     } else {
