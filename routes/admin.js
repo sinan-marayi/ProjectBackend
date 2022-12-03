@@ -2,33 +2,16 @@ const express = require("express");
 const router = express.Router();
 const { generateUrl } = require("../config/s3");
 const jwt = require("jsonwebtoken");
+const { Route53RecoveryReadiness } = require("aws-sdk");
+// MODELS
 const Carousel = require("../models/carousel");
 const Product = require("../models/product");
 const Order = require("../models/order");
-const { Route53RecoveryReadiness } = require("aws-sdk");
-
+// JOI VALIDATION
 const productJoi = require("../joiValidation/productObject");
-
+const carouselJoi = require("../joiValidation/carouselObject");
 //AUTHENTICATION MIDDILEWARE
-function verifyToken(req, res, next) {
-  if (!req.headers.authorization) {
-    console.log("d");
-    return res.json({ success: false, msg: "unauthorized request" });
-  }
-  let token = req.headers.authorization.split(" ")[1];
-  if (!token) {
-    return res.json({ success: false, msg: "unauthorized request" });
-  }
-  jwt.verify(token, "ict", (err, payload) => {
-    if (err) {
-      res.json({ success: false, msg: "unauthorized request" });
-    } else {
-      req.user = payload;
-      console.log(req.user);
-      next();
-    }
-  });
-}
+const verifyToken = require("../helpers/verifyToken");
 
 //  S3 URL
 router.get("/s3url", verifyToken, async (req, res) => {
@@ -45,14 +28,19 @@ router.post("/addCarousel", verifyToken, async (req, res) => {
     category: req.body.category,
     image: req.body.image,
   };
-  let carousel = new Carousel(newCarousel);
-  carousel.save((err, data) => {
-    if (err) {
-      res.json({ success: false, msg: "Adding Carousel is Failed" });
-    } else {
-      res.json({ success: true, msg: "Adding Carousel is Successfull" });
-    }
-  });
+  let isValid = carouselJoi(newCarousel);
+  if (isValid.success) {
+    let carousel = new Carousel(newCarousel);
+    carousel.save((err, data) => {
+      if (err) {
+        res.json({ success: false, msg: "Adding Carousel is Failed" });
+      } else {
+        res.json({ success: true, msg: "Adding Carousel is Successfull" });
+      }
+    });
+  } else {
+    res.json({ success: false, msg: isValid.msg });
+  }
 });
 
 // REMOVE CAROUSEL

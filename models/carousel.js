@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const carouselSchema = mongoose.Schema({
     heading:{
         type:String,
-        reqiured:true
+        required:true
     },
     offer:{
         type:String,
